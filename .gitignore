@@ -1,0 +1,15 @@
+# .gitignore for Android Studio
+# from http://th4t.net/android-studio-gitignore.html
+
+*.iml
+*.iws
+*.ipr
+.idea/
+.gradle/
+local.properties
+
+*/build/
+
+*~
+*.swp
+
