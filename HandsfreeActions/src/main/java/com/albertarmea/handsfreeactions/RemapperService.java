@@ -21,15 +21,17 @@ public class RemapperService extends Service {
     }
 
     @Override
-    public void onStart(Intent intent, int startId) {
+    public int onStartCommand(Intent intent, int flags, int startId) {
         running = true;
-        super.onStart(intent, startId);
+        super.onStartCommand(intent, flags, startId);
         Log.i(tag, "Service started");
+        return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
         running = false;
+        Log.i(tag, "Service stopped");
         super.onDestroy();
         Toast.makeText(this, "RemapperService destroyed", Toast.LENGTH_LONG).show();
     }
