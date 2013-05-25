@@ -11,7 +11,6 @@ import android.widget.Toast;
  */
 public class RemapperService extends Service {
     public String tag = "RemapperService";
-    public static boolean running = false;
 
     @Override
     public void onCreate() {
@@ -22,7 +21,6 @@ public class RemapperService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        running = true;
         super.onStartCommand(intent, flags, startId);
         Log.i(tag, "Service started");
         return START_STICKY;
@@ -30,9 +28,8 @@ public class RemapperService extends Service {
 
     @Override
     public void onDestroy() {
-        running = false;
-        Log.i(tag, "Service stopped");
         super.onDestroy();
+        Log.i(tag, "Service stopped");
         Toast.makeText(this, "RemapperService destroyed", Toast.LENGTH_LONG).show();
     }
 

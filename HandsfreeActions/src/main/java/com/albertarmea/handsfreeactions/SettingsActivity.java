@@ -29,7 +29,7 @@ public class SettingsActivity extends Activity {
     private void setupUi() {
         Switch masterSwitch = (Switch) findViewById(R.id.master_switch);
         // Set the masterSwitch's initial state
-        masterSwitch.setChecked(RemapperService.running);
+        masterSwitch.setChecked(isServiceRunning());
         // Set the masterSwitch action
         masterSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -41,5 +41,17 @@ public class SettingsActivity extends Activity {
                 }
             }
         });
+    }
+
+    private boolean isServiceRunning() {
+        // TODO: Use a constant time method of checking if the service is running
+        // Linearly search running services for the RemapperService
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (RemapperService.class.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
