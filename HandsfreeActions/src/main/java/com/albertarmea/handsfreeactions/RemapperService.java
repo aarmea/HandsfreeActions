@@ -10,7 +10,8 @@ import android.widget.Toast;
  * Created by aarmea on 5/24/13.
  */
 public class RemapperService extends Service {
-    String tag = "RemapperService";
+    public String tag = "RemapperService";
+    public static boolean running = false;
 
     @Override
     public void onCreate() {
@@ -21,12 +22,14 @@ public class RemapperService extends Service {
 
     @Override
     public void onStart(Intent intent, int startId) {
+        running = true;
         super.onStart(intent, startId);
         Log.i(tag, "Service started");
     }
 
     @Override
     public void onDestroy() {
+        running = false;
         super.onDestroy();
         Toast.makeText(this, "RemapperService destroyed", Toast.LENGTH_LONG).show();
     }
