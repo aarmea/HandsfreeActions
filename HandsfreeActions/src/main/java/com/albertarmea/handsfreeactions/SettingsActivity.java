@@ -46,6 +46,7 @@ public class SettingsActivity extends Activity {
     private boolean isServiceRunning() {
         // TODO: Use a constant time method of checking if the service is running
         // Linearly search running services for the RemapperService
+        // Android does not provide an API to check if a service is running
         ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
             if (RemapperService.class.getName().equals(service.service.getClassName())) {
