@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -18,6 +19,7 @@ public class LogcatReader {
 
     private String logBuffer = "main";
     private String logTag = "*:v";
+    private boolean tagHasSpaces = false;
     private long messageExpiration = 1000;
 
     private boolean running = false;
@@ -48,18 +50,25 @@ public class LogcatReader {
 
     public boolean start() {
         // Start the logcat process
-        String command = null;
-        if (logTag.indexOf(' ') < 0) {
-            command = String.format("logcat -b %s -v time -s %s", logBuffer, logTag);
+        ArrayList<String> command = new ArrayList<String>();
+        // Java has no fast way to initialize an ArrayList with constant values
+        command.add("logcat");
+        command.add("-b");
+        command.add(logBuffer);
+        command.add("-v");
+        command.add("time");
+        if (logTag.indexOf(' ') >= 0) {
+            // logcat cannot handle tags containing spaces, so we have Java check for the tag
+            tagHasSpaces = true;
         } else {
-            // logcat cannot handle tags containing spaces, so use grep instead
-            command = String.format("logcat -b %s -v time | grep \"%s\"", logBuffer, logTag);
+            command.add("-s");
+            command.add(logTag);
         }
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         try {
             logcatProcess = processBuilder.start();
         } catch (IOException e) {
-            Log.wtf(TAG, "logcat threw an IOException");
+            Log.wtf(TAG, String.format("logcat threw an IOException: %s", e.toString()));
             return false;
         }
 
@@ -67,14 +76,24 @@ public class LogcatReader {
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
+                Log.d(TAG, String.format("Thread starting with tag %s", logTag));
                 running = true;
                 String dateFormatString = "MM-DD hh:mm:ss.SSS";
                 SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatString);
-                BufferedReader logcatOutput = new BufferedReader(new InputStreamReader(logcatProcess.getInputStream()), 1024);
+                BufferedReader logcatOutput = new BufferedReader(new InputStreamReader(logcatProcess.getInputStream()));
                 while (running) {
                     try {
                         // The complete logcat line without any parsing
                         String fullMessage = logcatOutput.readLine();
+
+                        // Skip this line if it does not contain the tag
+                        if (tagHasSpaces) {
+                            // Tag always follows the first '/' in the message
+                            if (fullMessage.indexOf('/')+1 != fullMessage.indexOf(logTag)) {
+                                Log.d(TAG, String.format("Won't send received message because tag is not %s", logTag));
+                                continue;
+                            }
+                        }
 
                         // The date, represented as a Java Date
                         // Parse the date
@@ -90,19 +109,27 @@ public class LogcatReader {
 
                         // Send the message
                         if (onLogReceiveListener != null) {
+                            Log.d(TAG, "Sending message");
                             // Only send the message if it's less than getMessageExpiration() milliseconds old
                             if ((new Date()).getTime() - time.getTime() < messageExpiration) {
                                 onLogReceiveListener.onLogReceive(time, message, fullMessage);
                             }
+                        } else {
+                            Log.d(TAG, "Could not send message because listener is not set");
                         }
                     } catch (ParseException e) {
                         // Ignore malformed logcat lines
                         Log.v(TAG, "Read invalid logcat line");
                     } catch (IOException e) {
-                        Log.wtf(TAG, "logcat threw an IOException");
-                        break;
+                        Log.wtf(TAG, String.format("logcat threw an IOException: %s", e.toString()));
                     }
                 }
+                try {
+                    logcatOutput.close();
+                } catch (IOException e) {
+                    // We're trying to close the stream, so we don't care if it fails
+                }
+                Log.d(TAG, "Thread stopping");
             }
         };
         readerThread = new Thread(runnable);

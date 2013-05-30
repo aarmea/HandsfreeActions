@@ -33,7 +33,7 @@ public class RemapperService extends Service {
             @Override
             public void onLogReceive(Date time, String message, String fullMessage) {
                 // TODO: Parse the message for AT+???? signals, implement triggered activity
-                Log.i(TAG, "Received Bluetooth AT signal");
+                Toast.makeText(RemapperService.this, "Received Bluetooth AT signal", Toast.LENGTH_LONG).show();
             }
         });
         bluetoothMonitor.start();
