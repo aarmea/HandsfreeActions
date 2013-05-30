@@ -90,7 +90,6 @@ public class LogcatReader {
                         if (tagHasSpaces) {
                             // Tag always follows the first '/' in the message
                             if (fullMessage.indexOf('/')+1 != fullMessage.indexOf(logTag)) {
-                                Log.d(TAG, String.format("Won't send received message because tag is not %s", logTag));
                                 continue;
                             }
                         }
