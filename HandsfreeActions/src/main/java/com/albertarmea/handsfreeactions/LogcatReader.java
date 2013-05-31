@@ -78,7 +78,7 @@ public class LogcatReader {
             public void run() {
                 Log.d(TAG, String.format("Thread starting with tag %s", logTag));
                 running = true;
-                String dateFormatString = "MM-DD hh:mm:ss.SSS";
+                String dateFormatString = "MM-dd hh:mm:ss.SSS";
                 SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatString);
                 BufferedReader logcatOutput = new BufferedReader(new InputStreamReader(logcatProcess.getInputStream()));
                 while (running) {
@@ -96,7 +96,6 @@ public class LogcatReader {
 
                         // The date, represented as a Java Date
                         // Parse the date
-                        // TODO: fix parsing (month is wrong)
                         Date time = dateFormat.parse(fullMessage.substring(0, dateFormatString.length()));
                         // Add the current year because logcat does not do it for you
                         Calendar calendar = Calendar.getInstance();
