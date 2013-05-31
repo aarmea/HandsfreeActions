@@ -107,16 +107,16 @@ public class LogcatReader {
                         String message = fullMessage.substring(fullMessage.indexOf("): ")+3);
 
                         // Send the message
-                        Log.d(TAG, String.format("Received message at %s", time.toString()));
                         if (onLogReceiveListener == null) {
                             synchronized(onLogReceiveListener) {
                                 if (onLogReceiveListener == null) {
                                     Log.d(TAG, "Could not send message because listener is not set");
-                                } else if (Math.abs((new Date()).getTime() - time.getTime()) < messageExpiration) {
-                                        Log.d(TAG, "Sending message");
-                                        onLogReceiveListener.onLogReceive(time, message, fullMessage);
+                                } else {
+                                    sendMessage(time, message, fullMessage);
                                 }
                             }
+                        } else {
+                            sendMessage(time, message, fullMessage);
                         }
                     } catch (ParseException e) {
                         // Ignore malformed logcat lines
@@ -131,6 +131,14 @@ public class LogcatReader {
                     // We're trying to close the stream, so we don't care if it fails
                 }
                 Log.d(TAG, "Thread stopping");
+            }
+
+            void sendMessage(Date time, String message, String fullMessage) {
+                long messageAge = Math.abs((new Date()).getTime() - time.getTime());
+                if (messageAge < messageExpiration) {
+                    Log.d(TAG, String.format("Sending message \"%s\" received at %s", message, time.toString()));
+                    onLogReceiveListener.onLogReceive(time, message, fullMessage);
+                }
             }
         };
         readerThread = new Thread(runnable);
