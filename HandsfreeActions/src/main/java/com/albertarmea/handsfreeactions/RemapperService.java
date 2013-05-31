@@ -1,12 +1,17 @@
 package com.albertarmea.handsfreeactions;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by aarmea on 5/24/13.
@@ -17,14 +22,15 @@ public class RemapperService extends Service {
     public LogcatReader.OnLogReceiveListener listener = new LogcatReader.OnLogReceiveListener() {
         @Override
         public void onLogReceive(Date time, String message, String fullMessage) {
-            // TODO: Parse the message for AT+???? signals, implement triggered activity
             Log.i(TAG, String.format("Received Bluetooth AT signal %s", message));
-            actions.act(message);
+            act(message);
         }
     };
 
     private LogcatReader bluetoothMonitor = null;
-    private PhoneActions actions = new PhoneActions();
+    private Date lastBLDN = null;
+    private long lastBLDNdelay = 5000;
+    private BroadcastReceiver phoneReceiver = null;
 
     @Override
     public void onCreate() {
@@ -42,6 +48,8 @@ public class RemapperService extends Service {
         bluetoothMonitor.setOnLogReceiveListener(listener);
         bluetoothMonitor.start();
 
+        registerPhone();
+
         Log.i(TAG, "Service started");
         return START_STICKY;
     }
@@ -49,6 +57,7 @@ public class RemapperService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        unregisterPhone();
         bluetoothMonitor.stop();
         Log.i(TAG, "Service stopped");
         Toast.makeText(this, "RemapperService destroyed", Toast.LENGTH_LONG).show();
@@ -83,4 +92,62 @@ public class RemapperService extends Service {
             }
         }
     }
+
+    private boolean callCausedByBLDN() {
+        // if (lastBLDN == null) return false;
+        long lastBLDNage = Math.abs((new Date()).getTime() - lastBLDN.getTime());
+        Log.d(TAG, String.format("Call came %d ms after the last BLDN (tolerance %d ms)", lastBLDNage, lastBLDNdelay));
+        return lastBLDNage < lastBLDNdelay;
+    }
+
+    private void registerPhone() {
+        phoneReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Log.d(TAG, "Detected outgoing call");
+                if (callCausedByBLDN()) {
+                    Log.d(TAG, "Call caused by BLDN, aborting");
+                    this.setResultData(null);
+                    this.abortBroadcast();
+                } else {
+                    Log.d(TAG, "Ignoring last BLDN because it is too old");
+                }
+            }
+        };
+        IntentFilter filter = new IntentFilter("android.intent.action.NEW_OUTGOING_CALL");
+        filter.setPriority(Integer.MAX_VALUE);
+        registerReceiver(phoneReceiver, filter);
+    }
+
+    private void unregisterPhone() {
+        unregisterReceiver(phoneReceiver);
+        phoneReceiver = null;
+    }
+
+    private void act(String command) {
+        BasicAction action = defaultActions.get(command);
+        if (action != null) {
+            Log.d(TAG, String.format("Handling Bluetooth command %s", command));
+            action.act();
+        } else {
+            Log.d(TAG, String.format("Unknown Bluetooth command %s", command));
+        }
+    }
+
+    private abstract class BasicAction {
+        public abstract void act();
+    }
+
+    private final Map<String, BasicAction> defaultActions = new HashMap<String, BasicAction>() {{
+        // BLDN: "Bluetooth last dialled number" - redial
+        put("AT+BLDN", new BasicAction() {
+            @Override
+            public void act() {
+                lastBLDN = new Date();
+                // TODO: (wait? and) open the Google Now voice search activity
+            }
+        });
+
+        // TODO: handle more commands
+    }};
 }
