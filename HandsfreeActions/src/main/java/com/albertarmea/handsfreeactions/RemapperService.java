@@ -1,11 +1,13 @@
 package com.albertarmea.handsfreeactions;
 
+import android.app.ActivityOptions;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.IBinder;
+import android.speech.RecognizerIntent;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -144,7 +146,15 @@ public class RemapperService extends Service {
             @Override
             public void act() {
                 lastBLDN = new Date();
-                // TODO: (wait? and) open the Google Now voice search activity
+                try {
+                    Thread.sleep(12000, 0);
+                } catch (InterruptedException e) {
+                    // We don't care if this gets interrupted
+                }
+                // TODO: this opens S Voice but recognition is not running
+                Intent customIntent = new Intent(RecognizerIntent.ACTION_VOICE_SEARCH_HANDS_FREE);
+                customIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(customIntent);
             }
         });
 
