@@ -22,8 +22,8 @@ public class LogcatReader {
     private boolean tagHasSpaces = false;
     private long messageExpiration = 1000;
 
-    private boolean running = false;
-    private OnLogReceiveListener onLogReceiveListener = null;
+    private volatile boolean running = false;
+    private volatile OnLogReceiveListener onLogReceiveListener = null;
     private Process logcatProcess = null;
     private Thread readerThread = null;
 
@@ -96,6 +96,7 @@ public class LogcatReader {
 
                         // The date, represented as a Java Date
                         // Parse the date
+                        // TODO: fix parsing (month is wrong)
                         Date time = dateFormat.parse(fullMessage.substring(0, dateFormatString.length()));
                         // Add the current year because logcat does not do it for you
                         Calendar calendar = Calendar.getInstance();
@@ -107,14 +108,16 @@ public class LogcatReader {
                         String message = fullMessage.substring(fullMessage.indexOf("): ")+3);
 
                         // Send the message
-                        if (onLogReceiveListener != null) {
-                            Log.d(TAG, "Sending message");
-                            // Only send the message if it's less than getMessageExpiration() milliseconds old
-                            if ((new Date()).getTime() - time.getTime() < messageExpiration) {
-                                onLogReceiveListener.onLogReceive(time, message, fullMessage);
+                        Log.d(TAG, String.format("Received message at %s", time.toString()));
+                        if (onLogReceiveListener == null) {
+                            synchronized(onLogReceiveListener) {
+                                if (onLogReceiveListener == null) {
+                                    Log.d(TAG, "Could not send message because listener is not set");
+                                } else if (Math.abs((new Date()).getTime() - time.getTime()) < messageExpiration) {
+                                        Log.d(TAG, "Sending message");
+                                        onLogReceiveListener.onLogReceive(time, message, fullMessage);
+                                }
                             }
-                        } else {
-                            Log.d(TAG, "Could not send message because listener is not set");
                         }
                     } catch (ParseException e) {
                         // Ignore malformed logcat lines
@@ -138,7 +141,6 @@ public class LogcatReader {
     }
 
     public void stop() {
-        // TODO: implement!
         running = false;
         logcatProcess.destroy();
     }

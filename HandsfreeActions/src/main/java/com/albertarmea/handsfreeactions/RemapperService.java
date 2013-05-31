@@ -14,6 +14,14 @@ import java.util.Date;
 public class RemapperService extends Service {
     public static final String TAG = "RemapperService";
 
+    public static LogcatReader.OnLogReceiveListener listener = new LogcatReader.OnLogReceiveListener() {
+        @Override
+        public void onLogReceive(Date time, String message, String fullMessage) {
+            // TODO: Parse the message for AT+???? signals, implement triggered activity
+            Log.i(TAG, String.format("Received Bluetooth AT signal %s", message));
+        }
+    };
+
     private LogcatReader bluetoothMonitor = null;
 
     @Override
@@ -29,13 +37,7 @@ public class RemapperService extends Service {
         super.onStartCommand(intent, flags, startId);
 
         bluetoothMonitor = new LogcatReader("main", "Bluetooth AT recv", 1000);
-        bluetoothMonitor.setOnLogReceiveListener(new LogcatReader.OnLogReceiveListener() {
-            @Override
-            public void onLogReceive(Date time, String message, String fullMessage) {
-                // TODO: Parse the message for AT+???? signals, implement triggered activity
-                Toast.makeText(RemapperService.this, "Received Bluetooth AT signal", Toast.LENGTH_LONG).show();
-            }
-        });
+        bluetoothMonitor.setOnLogReceiveListener(listener);
         bluetoothMonitor.start();
 
         Log.i(TAG, "Service started");
